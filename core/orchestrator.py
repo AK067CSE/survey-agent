@@ -6,7 +6,7 @@ from .agents.education import EducationAgent
 from .agents.healthcare import HealthAgent
 from .validator import validate_json
 from .db import db
-from .llm_providers import call_openai
+from .llm_providers import call_openai, call_all_providers
 
 AGENTS = {
     "agriculture": AgricultureAgent(),
@@ -17,7 +17,7 @@ AGENTS = {
 _session_ctx: Dict[str, Dict[str, Any]] = {}
 
 
-def process_question(domain: str, question: str, region: str, session_id: Optional[str] = None, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def process_question(domain: str, question: str, region: str, session_id: Optional[str] = None, context: Optional[Dict[str, Any]] = None, all_providers: bool = False) -> Dict[str, Any]:
     t0 = time.time()
     sid = session_id or str(int(time.time() * 1000))
     ctx = _session_ctx.get(sid, {})
@@ -30,7 +30,11 @@ def process_question(domain: str, question: str, region: str, session_id: Option
     raw = agent.process(question, region, ctx)
     cleaned = validate_json(raw.get("raw_response", ""))
 
-    ctx.setdefault("history", []).append({"q": question, "a": cleaned})
+    multi = None
+    if all_providers:
+        multi = call_all_providers(agent.build_prompt(question, region, ctx))
+
+    ctx.setdefault("history", []).append({"q": question, "a": cleaned, "multi": multi})
     ctx["domain"] = domain
     ctx["region"] = region
     _session_ctx[sid] = ctx
@@ -41,6 +45,7 @@ def process_question(domain: str, question: str, region: str, session_id: Option
         "region": region,
         "question": question,
         "agent_response": cleaned,
+        "all_providers": multi,
         "processing_time": time.time() - t0,
         "status": "success",
     }

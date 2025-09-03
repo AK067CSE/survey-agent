@@ -3,19 +3,45 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Read from environment first, then fallback to Streamlit secrets if available
+try:
+    import streamlit as st  # type: ignore
+    _SECRETS = getattr(st, "secrets", {})
+except Exception:
+    _SECRETS = {}
+
+
+def _get(name: str, default: str | None = None) -> str | None:
+    val = os.getenv(name)
+    if val is not None and val != "":
+        return val
+    if isinstance(_SECRETS, dict):
+        sec_val = _SECRETS.get(name)
+        if sec_val is not None and str(sec_val) != "":
+            return str(sec_val)
+    return default
+
+
+def _get_any(names: list[str], default: str | None = None) -> str | None:
+    for n in names:
+        v = _get(n)
+        if v:
+            return v
+    return default
+
+OPENAI_API_KEY = _get("OPENAI_API_KEY")
+GROQ_API_KEY = _get("GROQ_API_KEY")
+GEMINI_API_KEY = _get("GEMINI_API_KEY")
 # Prefer HF_API_KEY, keep backward-compatible fallbacks
-HF_API_KEY = os.getenv("HF_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_API_KEY") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
-MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI")
+HF_API_KEY = _get_any(["HF_API_KEY", "HF_TOKEN", "HUGGINGFACE_API_KEY", "HUGGINGFACEHUB_API_TOKEN"]) 
+MONGO_URI = _get_any(["MONGO_URI", "MONGODB_URI"]) 
 
 # Hugging Face model selection and URL (default to Mistral as requested)
-HF_MODEL = os.getenv("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
+HF_MODEL = _get("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2") or "mistralai/Mistral-7B-Instruct-v0.2"
 HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 # Backward compatibility
 DEFAULT_HF_MODEL = HF_MODEL
-EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+EMBED_MODEL = _get("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2") or "sentence-transformers/all-MiniLM-L6-v2"
 
 SURVEY_DOMAINS = ["agriculture", "education", "healthcare"]
 INDIAN_REGIONS = {

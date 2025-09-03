@@ -15,7 +15,7 @@ def research_agent(topic: str) -> str:
     
     # Use a fast model to summarize the search results
     summary_prompt = f"Based on the following search results, create a summary of key points for creating a survey about '{topic}'.\n\nSearch Results:\n{search_results}\n\nSummary:"
-    summary = llm_clients.call_groq(summary_prompt, model="llama3-70b-8192")
+    summary = llm_clients.call_groq(summary_prompt, model="llama-3.3-70b-versatile")
     return summary
 
 def creative_question_agent(topic: str, research_summary: str) -> str:

@@ -11,6 +11,31 @@ class ProviderError(Exception):
     pass
 
 
+def call_all_providers(prompt: str) -> Dict[str, Any]:
+    results: Dict[str, Any] = {}
+    # Hugging Face
+    try:
+        results["huggingface"] = {"ok": True, "text": call_huggingface_inference(prompt)}
+    except Exception as e:
+        results["huggingface"] = {"ok": False, "error": str(e)}
+    # OpenAI
+    try:
+        results["openai"] = {"ok": True, "text": call_openai(prompt, model="gpt-4o-mini")}
+    except Exception as e:
+        results["openai"] = {"ok": False, "error": str(e)}
+    # Groq
+    try:
+        results["groq"] = {"ok": True, "text": call_groq(prompt, model="llama3-8b-8192")}
+    except Exception as e:
+        results["groq"] = {"ok": False, "error": str(e)}
+    # Gemini
+    try:
+        results["gemini"] = {"ok": True, "text": call_gemini(prompt, model="gemini-1.5-pro")}
+    except Exception as e:
+        results["gemini"] = {"ok": False, "error": str(e)}
+    return results
+
+
 def _headers_json(api_key: Optional[str]) -> Dict[str, str]:
     h = {"Content-Type": "application/json"}
     if api_key:
@@ -68,33 +93,20 @@ def call_gemini(prompt: str, model: str = "gemini-1.5-pro") -> str:
     except Exception:
         return json.dumps(data)
 
+
 def call_huggingface_inference(prompt: str, model: Optional[str] = None) -> str:
     # Uses Inference API if HF key set; fallback to echo
     selected_model = model or HF_MODEL
     if not HF_API_KEY:
+        # Fallback stub
         return f"[HF local stub] {prompt[:200]}"
-
     url = f"https://api-inference.huggingface.co/models/{selected_model}"
     headers = {"Authorization": f"Bearer {HF_API_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": MODEL_CONFIG["max_new_tokens"],
-            "temperature": MODEL_CONFIG["temperature"],
-            "return_full_text": False  # avoids slicing the prompt
-        },
-        "options": {"wait_for_model": True}  # ensure model is loaded
-    }
-
+    payload = {"inputs": prompt, "parameters": {"max_new_tokens": MODEL_CONFIG["max_new_tokens"], "temperature": MODEL_CONFIG["temperature"]}}
     r = requests.post(url, headers=headers, json=payload, timeout=120)
     r.raise_for_status()
     data = r.json()
-
     # HF responses vary; normalize to text
-    if isinstance(data, list) and data and isinstance(data[0], dict) and "generated_text" in data[0]:
-        return data[0]["generated_text"].strip()
-    if isinstance(data, dict) and "error" in data:
-        raise ProviderError(f"Hugging Face error: {data['error']}")
-    # Fallback: return raw JSON for debugging
+    if isinstance(data, list) and len(data) and "generated_text" in data[0]:
+        return data[0]["generated_text"][len(prompt):].strip()
     return json.dumps(data)
-

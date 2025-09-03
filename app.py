@@ -34,18 +34,22 @@ with col1:
     st.subheader("Ask a survey question")
     question = st.text_area("Question", height=120, placeholder="E.g., What are irrigation challenges during monsoon in Bihar?")
     extra_ctx = st.text_area("Optional context", height=80)
+    all_providers = st.checkbox("Get responses from all providers (HF, OpenAI, Groq, Gemini)", value=False)
     go = st.button("Run", type="primary")
 
     if go and question.strip():
         ctx = {"additional": extra_ctx} if extra_ctx.strip() else None
         with st.spinner("Processing..."):
-            res = process_question(domain, question, region, st.session_state.session_id, ctx)
+            res = process_question(domain, question, region, st.session_state.session_id, ctx, all_providers=all_providers)
             if res.get("session_id"):
                 st.session_state.session_id = res["session_id"]
         if res.get("status") == "success":
             st.success("Done")
             st.markdown("**Response**")
             st.markdown(f"<div class='response-box'>{res['agent_response']}</div>", unsafe_allow_html=True)
+            if res.get("all_providers"):
+                st.markdown("**All Providers**")
+                st.json(res["all_providers"])
             with st.expander("Raw JSON"):
                 st.json(res)
         else:

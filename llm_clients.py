@@ -45,7 +45,7 @@ def call_gemini(prompt):
     except Exception as e:
         return f"Error calling Gemini: {e}"
 
-def call_groq(prompt, model="llama3-8b-8192"):
+def call_groq(prompt, model="llama-3.3-70b-versatile"):
     """Calls the Groq API for fast responses."""
     try:
         client = get_groq_client()

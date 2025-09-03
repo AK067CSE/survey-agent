@@ -75,7 +75,7 @@ def call_huggingface_inference(prompt: str, model: Optional[str] = None) -> str:
     if not HF_API_KEY:
         # Fallback stub
         return f"[HF local stub] {prompt[:200]}"
-    url = f"https://api-inference.huggingface.co/models/{selected_model}"
+    url = f"HF_URL = f"https://api-inference.huggingface.co/models/{SELECTED_MODEL}""
     headers = {"Authorization": f"Bearer {HF_API_KEY}", "Content-Type": "application/json"}
     payload = {"inputs": prompt, "parameters": {"max_new_tokens": MODEL_CONFIG["max_new_tokens"], "temperature": MODEL_CONFIG["temperature"]}}
     r = requests.post(url, headers=headers, json=payload, timeout=120)

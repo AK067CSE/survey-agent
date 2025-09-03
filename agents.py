@@ -77,7 +77,7 @@ def compiler_agent(topic: str, open_ended_qs: str, structured_qs: str) -> str:
 
     Compile them into a final survey. Use Markdown for formatting (e.g., ## Section Title, 1., a.).
     """
-    response = llm_clients.call_groq(prompt, model="llama3-70b-8192")
+    response = llm_clients.call_groq(prompt, model="llama-3.3-70b-versatile")
     return response
 
 def insight_agent(conversation_history: list) -> str:
